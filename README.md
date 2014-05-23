@@ -6,6 +6,13 @@ A WiFi weather station built upon a Spark Core.
 
 nimbus is a WiFi weather station with a variety of sensors. At the moment it can read light, temperature and humidity. In future I am hoping to add a nitrogen dioxide and carbon monoxide sensor to keep an eye on local pollution levels. 
 
+The following variables are available via the Spark Cloud API:
+
+* ip (IP Address)
+* temperature (°c)
+* humidity (%)
+* lux (Light)
+
 Issues/Problems/Questions? [Open a GitHub issue](https://github.com/scottsweb/nimbus/issues). You can also contact me via [scott.ee](http://scott.ee) or [twitter (@scottsweb)](http://twitter.com/scottsweb).
 
 ## Hardware
@@ -20,7 +27,7 @@ Issues/Problems/Questions? [Open a GitHub issue](https://github.com/scottsweb/ni
 
 ![nimbus breadboard made with Fritzing](https://raw.githubusercontent.com/scottsweb/nimbus/master/nimbus.png)
 
-nimbus.fzz can be opened in [Fritzing](http://fritzing.org/). The 10kΩ resistor is needed for the DHT22.
+The included nimbus.fzz file can be opened in [Fritzing](http://fritzing.org/).
 
 ## Installation
 
