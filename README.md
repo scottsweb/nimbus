@@ -21,7 +21,7 @@ Issues/Problems/Questions? [Open a GitHub issue](https://github.com/scottsweb/ni
 * [DHT22 (AM2302)](https://learn.adafruit.com/dht)
 * 10kΩ resistor for the data pin of the DHT22
 * [Adafruit GA1A12S202 Log-scale Analog Light Sensor](https://learn.adafruit.com/adafruit-ga1a12s202-log-scale-analog-light-sensor)
-* Single LED & resistor (see http://docs.spark.io/#/examples/blink-an-led for an intro into calculating resistors)
+* Single LED & resistor (see http://docs.spark.io/#/examples/blink-an-led for an intro into calculating the required resistance for your chosen LED)
 
 ## Circuit
 
