@@ -12,7 +12,7 @@ int ga1a = A0;
 uint8_t data[5]; 
 float rawRange = 4095; // analogRead returns value up to 4095 (http://docs.spark.io/#/firmware/i-o-analogread)
 float logRange = 5.0; //  3.3v = 10^5 lux (https://learn.adafruit.com/adafruit-ga1a12s202-log-scale-analog-light-sensor/use-it)
-int warningTempLow = 6; // enable warning when temperature reaches this value
+int warningTempLow = 5; // enable warning when temperature reaches this value
 
 // cloud vars
 char ip[24];
@@ -29,19 +29,23 @@ void setup() {
     // debug over serial
     if (debug) {
         Serial.begin(9600);
-	    while(!Serial.available()) {
-	       Serial.println("hit a key");
-	        delay(1000);
-	    }
-    	Serial.println("Booting Nimbus v1.0");
+        while(!Serial.available()) {
+           Serial.println("hit a key");
+           delay(1000);
+        }
+        Serial.println("Booting nimbus v1.0");
     }
 
-	// grab local IP
+    // grab local IP
     IPAddress nim_ip = Network.localIP();
     sprintf(ip, "%d.%d.%d.%d", nim_ip[0], nim_ip[1], nim_ip[2], nim_ip[3]);
-	
-	if (debug) Serial.println(ip);
-	
+    
+    // output IP over serial
+    if (debug) {
+        Serial.println(ip);
+        Serial.println("----------");
+    }
+    
     // set led as output (http://docs.spark.io/#/firmware/setup-pinmode)
     pinMode(led, OUTPUT);
     pinMode(intled, OUTPUT);
@@ -56,10 +60,12 @@ void setup() {
     Spark.variable("ip", ip, STRING);
     
     // turn off the bright led (save power and use it for low temp warning)
-    RGB.control(true);
-    RGB.color(0, 0, 0);
+    if (!debug) {
+        RGB.control(true);
+        RGB.color(0, 0, 0);
+    }
     
-    // power throttle the wifi (https://community.spark.io/t/wifi-power-throttling/4486)
+    // power throttle the wifi (https://community.spark.io/t/wifi-power-throttling/4486)?
 
 } 
 
@@ -85,14 +91,26 @@ void loop() {
         Serial.println("----------");
     }
     
-    // turn on all LEDs to warn when low temperature
+    //  warn when low temperature
     if (temp <= warningTempLow) {
+        
         // set on board LED to red & switch LED pin high
-        RGB.color(255, 0, 0);
+        // RGB.color(255, 0, 0);
         digitalWrite(led, HIGH);
+        
+        // publish this event? - optional (disabled for power saving at the mo)
+        // Spark.publish("nimbus/low", "Low temperature waring!", 60, PRIVATE);
+        
+        // print to serial if debugging 
+        if (debug) {
+            Serial.println("Low temperature warning!");
+            Serial.println("----------");
+        }
+
     } else {
+        
         // turn off on board LED and switch LED pin low
-        RGB.color(0, 0, 0);
+        // RGB.color(0, 0, 0);
         digitalWrite(led, LOW);
     }
 
@@ -105,8 +123,8 @@ void loop() {
     delay(150);
     digitalWrite(intled, LOW);
 
-    // TODO: sleep the core for X seconds - save power
-    // Spark.sleep(SLEEP_MODE_DEEP, 10);
+    // sleep the core for 30 seconds to save power
+    // Spark.sleep(SLEEP_MODE_DEEP, 30);
 
 }
 
