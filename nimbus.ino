@@ -13,11 +13,14 @@ uint8_t data[5];
 float rawRange = 4095; // analogRead returns value up to 4095 (http://docs.spark.io/#/firmware/i-o-analogread)
 float logRange = 5.0; //  3.3v = 10^5 lux (https://learn.adafruit.com/adafruit-ga1a12s202-log-scale-analog-light-sensor/use-it)
 int warningTempLow = 5; // enable warning when temperature reaches this value
+#define ONE_DAY_MILLIS (24 * 60 * 60 * 1000) // a day in in millis
+unsigned long lastSync = millis(); // last sync time for time sync
 
 // cloud vars
 char ip[24];
 double temp = 0;
 double humidity = 0;
+int rawlight = 0;
 double lux = 0;
 
 // set to true to debug over serial
@@ -30,8 +33,8 @@ void setup() {
     if (debug) {
         Serial.begin(9600);
         while(!Serial.available()) {
-           Serial.println("hit a key");
-           delay(1000);
+           Serial.println("Press any key to start...");
+           delay(2000);
         }
         Serial.println("Booting nimbus v1.0");
     }
@@ -53,11 +56,11 @@ void setup() {
     // set dh22 as input
     pinMode(dht22, INPUT);
     
-    // setup cloud vars
-    Spark.variable("temperature", &temp, DOUBLE);
-    Spark.variable("humidity", &humidity, DOUBLE);
-    Spark.variable("lux", &lux, DOUBLE);
-    Spark.variable("ip", ip, STRING);
+    // setup cloud vars - currently disabled in favour of publish
+    // Spark.variable("temperature", &temp, DOUBLE);
+    // Spark.variable("humidity", &humidity, DOUBLE);
+    // Spark.variable("lux", &lux, DOUBLE);
+    // Spark.variable("ip", ip, STRING);
     
     // turn off the bright led (save power and use it for low temp warning)
     if (!debug) {
@@ -65,67 +68,127 @@ void setup() {
         RGB.color(0, 0, 0);
     }
     
+    // delay
+    delay(2000);
+    
+    // read sensors
+    readAllSensors();
+    
     // power throttle the wifi (https://community.spark.io/t/wifi-power-throttling/4486)?
 
 } 
 
 // loop
 void loop() {
+  
+    // what minute is it? - only do this 4 times per hour
+    if ( Time.minute() == 00 || Time.minute() == 15 || Time.minute() == 30 || Time.minute() == 45) {
+    
+        // read sensors
+        readAllSensors();
+        
+        // publish (http://docs.spark.io/#/firmware/data-and-control-spark-publish)
+        Spark.publish("nimbus/temperature", String(temp), 60, PRIVATE);
+        Spark.publish("nimbus/humidity", String(humidity), 60, PRIVATE);
+        Spark.publish("nimbus/lux", String(lux), 60, PRIVATE);
+        Spark.publish("nimbus/ip", ip, 60, PRIVATE);
 
-    // read at regular 2 second intervals
-    delay(2000);
-    
-    // grab the lux value 
-    int rawlight = analogRead(ga1a);
-    lux = readGA1A(rawlight);
-    
-    // read the dht22
-    readDHT22();
-    
-    // output vars over serial when debuging 
-    if (debug) {
-        Serial.println(temp);
-        Serial.println(humidity);
-        Serial.println(rawlight);
-        Serial.println(lux);
-        Serial.println("----------");
-    }
-    
-    //  warn when low temperature
-    if (temp <= warningTempLow) {
-        
-        // set on board LED to red & switch LED pin high
-        // RGB.color(255, 0, 0);
-        digitalWrite(led, HIGH);
-        
-        // publish this event? - optional (disabled for power saving at the mo)
-        // Spark.publish("nimbus/low", "Low temperature waring!", 60, PRIVATE);
-        
-        // print to serial if debugging 
+        // output vars over serial when debuging 
         if (debug) {
-            Serial.println("Low temperature warning!");
+            Serial.println(temp);
+            Serial.println(humidity);
+            Serial.println(rawlight);
+            Serial.println(lux);
             Serial.println("----------");
         }
-
-    } else {
+    
+        //  warn when low temperature
+        if (temp <= warningTempLow) {
         
-        // turn off on board LED and switch LED pin low
-        // RGB.color(0, 0, 0);
-        digitalWrite(led, LOW);
+            // set on board LED to red & switch LED pin high
+            // RGB.color(255, 0, 0);
+            digitalWrite(led, HIGH);
+        
+            // publish (http://docs.spark.io/#/firmware/data-and-control-spark-publish)
+            Spark.publish("nimbus/low", String(temp), 60, PRIVATE);
+        
+            // print to serial if debugging 
+            if (debug) {
+                Serial.println("Low temperature warning!");
+                Serial.println("----------");
+            }
+
+        } else {
+        
+            // turn off on board LED and switch LED pin low
+            // RGB.color(0, 0, 0);
+            digitalWrite(led, LOW);
+        }
+
+        // indicate the core is working using the D7 LED
+        digitalWrite(intled, HIGH);
+        delay(200);
+        digitalWrite(intled, LOW);
+        delay(200);
+        digitalWrite(intled, HIGH);
+        delay(200);
+        digitalWrite(intled, LOW);
+        delay(200);
+        digitalWrite(intled, HIGH);
+        delay(200);
+        digitalWrite(intled, LOW);
+        delay(200);
+        digitalWrite(intled, HIGH);
+        delay(200);
+        digitalWrite(intled, LOW);
+        delay(200);
+        digitalWrite(intled, HIGH);
+        delay(200);
+        digitalWrite(intled, LOW);
+        delay(200);
+        
+        // sync the time from Spark Cloud ?
+        if (millis() - lastSync > ONE_DAY_MILLIS) {
+            Spark.syncTime();
+            lastSync = millis();
+        }
+        
+        // delay for the rest of this minute as we only want one reading
+        // this also gives us a whole minute to flash the core if necessary
+        delay(59000);
+        
+        // sleep the core to save power when not debugging 
+        if (!debug) {        
+            
+            // deep sleep the core for 13 minutes - we need to give it time to re-boot & re-connect
+            Spark.sleep(SLEEP_MODE_DEEP, 780);
+
+            // if any sensors are attached in future that need constant monitoring (PIR?) then deep sleep needs to be disabled
+            // to do this nimbus will need to use WiFi.on() and WiFi.off to get the data sent asap
+            // standard Spark.sleep will not work althogh the loop keeps running during a standard sleep
+            // Spark.sleep(780);
+        }
     }
+    
 
-    // indicate the core is working using the D7 LED
-    digitalWrite(intled, HIGH);
-    delay(150);
-    digitalWrite(intled, LOW);
-    delay(150);
-    digitalWrite(intled, HIGH);
-    delay(150);
-    digitalWrite(intled, LOW);
 
-    // sleep the core for 30 seconds to save power
-    // Spark.sleep(SLEEP_MODE_DEEP, 30);
+}
 
+/**
+ * readAllSensors()
+ * 
+ * Wrapper function to read all sensors attached to nimbus
+ * 
+ * @return void
+ */
+void readAllSensors() {
+ 
+    // grab the lux value 
+    rawlight = analogRead(ga1a);
+    lux = readGA1A(rawlight);
+    
+    // read the dht22 (temp & humidity)
+    readDHT22();   
 }
 
 /**
