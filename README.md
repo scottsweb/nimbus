@@ -1,6 +1,14 @@
+![nimbus](http://cloud.scott.ee/images/nimbus.png)
+
 # nimbus
 
-A WiFi weather station built upon a Spark Core.
+* Status: ✔ Active
+* Contributors: [@scottsweb](http://twitter.com/scottsweb)
+* Description: A WiFi weather station built upon a Spark Core.
+* Author: [Scott Evans](http://scott.ee)
+* Author URI: [http://scott.ee](http://scott.ee)
+* License: GNU General Public License v2.0
+* License URI: [http://www.gnu.org/licenses/gpl-2.0.html](http://www.gnu.org/licenses/gpl-2.0.html)
 
 ## About
 
