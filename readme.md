@@ -1,4 +1,4 @@
-![nimbus](http://cloud.scott.ee/images/nimbus.png)
+![nimbus](https://scott.ee/images/nimbus.png)
 
 # nimbus
 
